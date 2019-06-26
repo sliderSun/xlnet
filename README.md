@@ -1,6 +1,6 @@
 ## Introduction
 
-**XLNet** is a new unsuperivsed language representation learning method based on a novel generalized permutation language modeling objective. Additionally, XLNet employs [Transformer-XL](https://arxiv.org/abs/1901.02860) as the backbone model, exhibiting excellent performance for language tasks involving long context. Overall, XLNet achieves state-of-the-art (SOTA) results on various downstream language tasks including question answering, natural language inference, sentiment analysis, and document ranking.
+**XLNet** is a new unsupervised language representation learning method based on a novel generalized permutation language modeling objective. Additionally, XLNet employs [Transformer-XL](https://arxiv.org/abs/1901.02860) as the backbone model, exhibiting excellent performance for language tasks involving long context. Overall, XLNet achieves state-of-the-art (SOTA) results on various downstream language tasks including question answering, natural language inference, sentiment analysis, and document ranking.
 
 For a detailed description of technical details and experimental results, please refer to our paper:
 
@@ -122,7 +122,7 @@ From here on, we assume XLNet-Large and XLNet-base has been downloaded to `$LARG
     --model_dir=exp/sts-b \
     --uncased=False \
     --spiece_model_file=${LARGE_DIR}/spiece.model \
-    --model_config_path=${LARGE_DIR}/model_config.json \
+    --model_config_path=${LARGE_DIR}/xlnet_config.json \
     --init_checkpoint=${LARGE_DIR}/xlnet_model.ckpt \
     --max_seq_length=128 \
     --train_batch_size=8 \
@@ -147,7 +147,7 @@ From here on, we assume XLNet-Large and XLNet-base has been downloaded to `$LARG
     --model_dir=exp/sts-b \
     --uncased=False \
     --spiece_model_file=${LARGE_DIR}/spiece.model \
-    --model_config_path=${LARGE_DIR}/model_config.json \
+    --model_config_path=${LARGE_DIR}/xlnet_config.json \
     --max_seq_length=128 \
     --eval_batch_size=8 \
     --num_hosts=1 \
@@ -163,7 +163,7 @@ From here on, we assume XLNet-Large and XLNet-base has been downloaded to `$LARG
 - In the context of GPU training, `num_core_per_host` denotes the number of GPUs to use.
 - In the multi-GPU setting, `train_batch_size` refers to the <u>per-GPU batch size</u>.
 - `eval_all_ckpt` allows one to evaluate all saved checkpoints (save frequency is controlled by `save_steps`) after training finishes and choose the best model based on dev performance.
-- `data_dir` and `output_dir` refer to the directories of the "raw data" and "preprocessed tfrecords" respectively, while `model_dir` is the working directory for saving checkpoints and tensorflow events.
+- `data_dir` and `output_dir` refer to the directories of the "raw data" and "preprocessed tfrecords" respectively, while `model_dir` is the working directory for saving checkpoints and tensorflow events. **`model_dir` should be set as a separate folder to `init_checkpoint`.**
 - To try out <u>XLNet-base</u>, one can simply set `--train_batch_size=32` and `--num_core_per_host=1`, along with according changes in `init_checkpoint` and `model_config_path`.
 - For GPUs with smaller RAM, please proportionally decrease the `train_batch_size` and increase `num_core_per_host` to use the same training setting.
 - **Important**: we separate the training and evaluation into "two phases", as using multi GPUs to perform evaluation is tricky (one has to correctly separate the data across GPUs). To ensure correctness, we only support single-GPU evaluation for now.
@@ -272,6 +272,8 @@ To run the code:
 
 ## Custom Usage of XLNet
 
+### XLNet Abstraction
+
 For finetuning, it is likely that you will be able to modify existing files such as `run_classifier.py`, `run_squad.py` and `run_race.py` for your task at hand. However, we also provide an abstraction of XLNet to enable more flexible usage. Below is an example:
 
 ```python
@@ -304,6 +306,24 @@ seq_out = xlnet_model.get_sequence_output()
 # build your applications based on `summary` or `seq_out`
 ```
 
+### Tokenization
+
+Below is an example of doing tokenization in XLNet:
+```python
+import sentencepiece as spm
+from prepro_utils import preprocess_text, encode_ids
+
+# some code omitted here...
+# initialize FLAGS
+
+text = "An input text string."
+
+sp_model = spm.SentencePieceProcessor()
+sp_model.Load(FLAGS.spiece_model_file)
+text = preprocess_text(text, lower=FLAGS.uncased)
+ids = encode_ids(sp_model, text)
+```
+where `FLAGS.spiece_model_file` is the SentencePiece model file in the same zip as the pretrained model, `FLAGS.uncased` is a bool indicating whether to do uncasing.
 
 
 ## Pretraining with XLNet
@@ -361,7 +381,6 @@ After preprocessing, we are ready to pretrain an XLNet. Below are the hyperparam
 
 ```shell
 python train.py
-  --corpus_info_path=$DATA/corpus_info.json \
   --record_info_dir=$DATA/tfrecords \
   --train_batch_size=2048 \
   --seq_len=512 \
