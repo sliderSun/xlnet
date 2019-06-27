@@ -82,6 +82,7 @@ As of <u>June 19, 2019</u>, this code base has been tested with TensorFlow 1.13.
 
 - Most of the SOTA results in our paper were produced on TPUs, which generally have more RAM than common GPUs. As a result, it is currently very difficult (costly) to re-produce most of the `XLNet-Large` SOTA results in the paper using GPUs with 12GB - 16GB of RAM, because a 16GB GPU is only able to hold a <u>single sequence with length 512</u> for `XLNet-Large`. Therefore, a large number (ranging from 32 to 128, equal to `batch_size`) of GPUs are required to reproduce many results in the paper.
 - We are experimenting with gradient accumulation to potentially relieve the memory burden, which could be included in a near-future update.
+- **Alternative methods** of finetuning XLNet on **constrained hardware** have been presented in [renatoviolin's repo](https://github.com/renatoviolin/xlnet), which obtained 86.24 F1 on SQuAD2.0 with a 8GB memory GPU.
 
 Given the memory issue mentioned above, using the default finetuning scripts (`run_classifier.py` and `run_squad.py`), we benchmarked the maximum batch size on a single **16GB** GPU with TensorFlow **1.13.1**:
 
@@ -385,6 +386,7 @@ python train.py
   --train_batch_size=2048 \
   --seq_len=512 \
   --reuse_len=256 \
+  --mem_len=384 \
   --perm_size=256 \
   --n_layer=24 \
   --d_model=1024 \
